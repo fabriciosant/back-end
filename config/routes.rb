@@ -10,7 +10,6 @@ Rails.application.routes.draw do
         sign_in: "login",
         sign_out: "logout"
       }
-      # Adiciona a rota GET para visualizar todos os usuários
       resources :users, only: [ :index, :update, :destroy ], controller: "users"
     end
   end
