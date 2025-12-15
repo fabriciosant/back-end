@@ -1,23 +1,35 @@
 class Api::V1::AuthController < Devise::SessionsController
   def create
-    # Aceita ambos os formatos: com ou sem nesting 'user'
     email = params.dig(:user, :email) || params[:email]
     password = params.dig(:user, :password) || params[:password]
 
     user = User.find_by(email: email)
 
-    if user&.valid_password?(password)
-      access_token = TokenService.generate_access_token(user)
-      refresh_token = TokenService.generate_refresh_token(user)
+    if user
+      # Verifica se o email está confirmado
+      unless user.confirmed?
+        render json: {
+          error: "Email não confirmado. Verifique sua caixa de entrada.",
+          requires_confirmation: true
+        }, status: :unauthorized
+        return
+      end
 
-      render json: {
-        message: "Bem vindo de volta!",
-        access_token: access_token,
-        refresh_token: refresh_token,
-        user: user.as_json(except: [ :encrypted_password, :reset_password_token ])
-      }, status: :ok
+      if user.valid_password?(password)
+        access_token = TokenService.generate_access_token(user)
+        refresh_token = TokenService.generate_refresh_token(user)
+
+        render json: {
+          message: "Bem vindo de volta!",
+          access_token: access_token,
+          refresh_token: refresh_token,
+          user: user.as_json(except: [ :encrypted_password, :reset_password_token, :confirmation_token ])
+        }, status: :ok
+      else
+        render json: { error: "Email ou senha inválido!" }, status: :unauthorized
+      end
     else
-      render json: { error: "Email ou senha Inválido!" }, status: :unauthorized
+      render json: { error: "Email ou senha inválido!" }, status: :unauthorized
     end
   end
 

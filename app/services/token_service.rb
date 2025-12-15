@@ -36,6 +36,6 @@ class TokenService
   require "securerandom"
 
   def self.secret_key
-    ENV["JWT_SECRET"] || SecureRandom.hex(64)
+    ENV["JWT_SECRET"] || Rails.application.credentials.jwt_secret
   end
 end

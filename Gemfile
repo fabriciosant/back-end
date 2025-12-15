@@ -20,6 +20,8 @@ gem "thruster", require: false
 
 gem "rack-cors"
 
+gem 'letter_opener', group: :development
+
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
   gem "brakeman", require: false

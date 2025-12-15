@@ -2,19 +2,126 @@ class Api::V1::RegistrationsController < Devise::RegistrationsController
   respond_to :json
 
   def create
-    user = User.new(user_params)
-    if user.save
-      access_token = TokenService.generate_access_token(user)
-      refresh_token = TokenService.generate_refresh_token(user)
+    build_resource(user_params)
+
+    # Verifica se já existe usuário com este email
+    existing_user = User.find_by(email: user_params[:email])
+
+    if existing_user
+      if existing_user.confirmed?
+        return render json: {
+          error: [ "Email já está em uso" ]
+        }, status: :unprocessable_entity
+      else
+        # Reenvia confirmação para usuário não confirmado
+        existing_user.send_confirmation_instructions
+        return render json: {
+          message: "Email já cadastrado. Enviamos um novo email de confirmação.",
+          requires_confirmation: true
+        }, status: :ok
+      end
+    end
+
+    # Salva o usuário
+    resource.save
+
+    if resource.persisted?
+      # DEBUG: Verifique o que está acontecendo
+      puts "=== DEBUG INFO ==="
+      puts "Usuário salvo: #{resource.email}"
+      puts "Confirmation token: #{resource.confirmation_token}"
+      puts "Confirmation sent at: #{resource.confirmation_sent_at}"
+      puts "Confirmed at: #{resource.confirmed_at}"
+
+      # Tenta enviar o email de confirmação MANUALMENTE
+      begin
+        # FORÇA o envio do email
+        resource.send_confirmation_instructions
+
+        # Atualiza para ver se mudou
+        resource.reload
+
+        puts "Após envio - Token: #{resource.confirmation_token}"
+        puts "Após envio - Sent at: #{resource.confirmation_sent_at}"
+
+        if resource.confirmation_sent_at.present?
+          email_status = "Email enviado com sucesso"
+        else
+          email_status = "Email NÃO enviado"
+        end
+      rescue => e
+        puts "Erro ao enviar email: #{e.message}"
+        email_status = "Erro: #{e.message}"
+      end
+
+      # Verifica se o usuário já está confirmado
+      if resource.confirmed?
+        # Gera tokens JWT
+        access_token = TokenService.generate_access_token(resource)
+        refresh_token = TokenService.generate_refresh_token(resource)
+
+        render json: {
+          message: "Usuário criado e confirmado com sucesso",
+          user: resource,
+          access_token: access_token,
+          refresh_token: refresh_token
+        }, status: :created
+      else
+        # Usuário criado mas precisa confirmar email
+        render json: {
+          message: "Usuário criado. Verifique seu email para confirmar sua conta.",
+          debug: email_status,
+          user: resource.as_json(except: [ :encrypted_password, :confirmation_token ]),
+          requires_confirmation: true,
+          confirmation_sent_at: resource.confirmation_sent_at
+        }, status: :created
+      end
+    else
+      clean_up_passwords resource
+      set_minimum_password_length
 
       render json: {
-        message: "Usuário criado com sucesso",
-        user: user,
-        access_token: access_token,
-        refresh_token: refresh_token
-      }, status: :created
+        error: resource.errors.full_messages
+      }, status: :unprocessable_entity
+    end
+  end
+
+  # Método para confirmar email via API
+  def confirm
+    user = User.find_by(confirmation_token: params[:confirmation_token])
+
+    if user
+      user.confirm
+      render json: {
+        message: "Email confirmado com sucesso!"
+      }, status: :ok
     else
-      render json: { error: user.errors.full_messages }, status: :unprocessable_entity
+      render json: {
+        error: "Token de confirmação inválido"
+      }, status: :unprocessable_entity
+    end
+  end
+
+  def resend_confirmation
+    email = params[:email] || params.dig(:user, :email)
+    user = User.find_by(email: email)
+
+    if user
+      if user.confirmed?
+        render json: {
+          error: "Email já confirmado"
+        }, status: :unprocessable_entity
+      else
+        user.send_confirmation_instructions
+        render json: {
+          message: "Email de confirmação reenviado para #{user.email}",
+          confirmation_sent_at: user.confirmation_sent_at
+        }, status: :ok
+      end
+    else
+      render json: {
+        error: "Usuário não encontrado"
+      }, status: :not_found
     end
   end
 
@@ -43,5 +150,9 @@ class Api::V1::RegistrationsController < Devise::RegistrationsController
 
   def user_params
     params.require(:user).permit(:email, :password, :password_confirmation)
+  end
+
+  def sign_up_params
+    user_params
   end
 end
