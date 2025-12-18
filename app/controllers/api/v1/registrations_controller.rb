@@ -13,7 +13,6 @@ class Api::V1::RegistrationsController < Devise::RegistrationsController
           error: [ "Email já está em uso" ]
         }, status: :unprocessable_entity
       else
-        # Reenvia confirmação para usuário não confirmado
         existing_user.send_confirmation_instructions
         return render json: {
           message: "Email já cadastrado. Enviamos um novo email de confirmação.",
@@ -26,23 +25,10 @@ class Api::V1::RegistrationsController < Devise::RegistrationsController
     resource.save
 
     if resource.persisted?
-      # DEBUG: Verifique o que está acontecendo
-      puts "=== DEBUG INFO ==="
-      puts "Usuário salvo: #{resource.email}"
-      puts "Confirmation token: #{resource.confirmation_token}"
-      puts "Confirmation sent at: #{resource.confirmation_sent_at}"
-      puts "Confirmed at: #{resource.confirmed_at}"
-
-      # Tenta enviar o email de confirmação MANUALMENTE
       begin
-        # FORÇA o envio do email
         resource.send_confirmation_instructions
 
-        # Atualiza para ver se mudou
         resource.reload
-
-        puts "Após envio - Token: #{resource.confirmation_token}"
-        puts "Após envio - Sent at: #{resource.confirmation_sent_at}"
 
         if resource.confirmation_sent_at.present?
           email_status = "Email enviado com sucesso"
@@ -50,7 +36,6 @@ class Api::V1::RegistrationsController < Devise::RegistrationsController
           email_status = "Email NÃO enviado"
         end
       rescue => e
-        puts "Erro ao enviar email: #{e.message}"
         email_status = "Erro: #{e.message}"
       end
 

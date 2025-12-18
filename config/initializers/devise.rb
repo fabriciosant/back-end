@@ -1,6 +1,7 @@
 Devise.setup do |config|
   # Configurações de email - ajuste para seu domínio
   config.mailer_sender = ENV["GMAIL_USERNAME"]
+  config.mailer = 'DeviseMailer'
 
   # Se você quiser usar um mailer personalizado
   # config.mailer = "UserMailer"

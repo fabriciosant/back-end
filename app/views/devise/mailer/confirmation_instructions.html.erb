@@ -254,22 +254,22 @@
       
       <p class="welcome-text">Estamos muito felizes por você ter se juntado à nossa plataforma! Para começar sua jornada conosco, precisamos confirmar seu endereço de email.</p>
       
-      <div class="button-container">
-        <a href="<%= confirmation_url(@resource, confirmation_token: @token) %>" class="confirm-button">
-          🔐 Confirmar Minha Conta
+       <div class="button-container">
+        <a href="<%= @confirmation_url %>" class="confirm-button">
+           Confirmar Minha Conta
         </a>
       </div>
       
-      <div class="manual-link">
+     <div class="manual-link">
         <p><strong>Se o botão não funcionar, copie e cole este link no seu navegador:</strong></p>
         <div class="link-box">
-          <%= confirmation_url(@resource, confirmation_token: @token) %>
+          <%= @confirmation_url %>
         </div>
       </div>
       
       <!-- Aviso importante -->
       <div class="warning">
-        <h3>⏰ Importante!</h3>
+        <h3>Importante!</h3>
         <p>Este link de confirmação é válido por <strong>3 dias</strong>. Após este período, será necessário solicitar um novo email de confirmação.</p>
       </div>
       
