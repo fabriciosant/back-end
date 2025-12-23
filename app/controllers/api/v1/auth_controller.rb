@@ -1,3 +1,4 @@
+
 class Api::V1::AuthController < Devise::SessionsController
   def create
     email = params.dig(:user, :email) || params[:email]

@@ -1,7 +1,7 @@
 Devise.setup do |config|
   # Configurações de email - ajuste para seu domínio
   config.mailer_sender = ENV["GMAIL_USERNAME"]
-  config.mailer = 'DeviseMailer'
+  config.mailer = "DeviseMailer"
 
   # Se você quiser usar um mailer personalizado
   # config.mailer = "UserMailer"
@@ -15,6 +15,7 @@ Devise.setup do |config|
   config.expire_all_remember_me_on_sign_out = true
   config.password_length = 6..128
   config.email_regexp = /\A[^@\s]+@[^@\s]+\z/
+  config.reset_password_keys = [ :email ]
   config.reset_password_within = 6.hours
   config.sign_out_via = :delete
   config.responder.error_status = :unprocessable_entity
